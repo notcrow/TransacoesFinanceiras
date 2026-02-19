@@ -1,0 +1,54 @@
+# Build / binários
+bin/
+obj/
+out/
+
+# Visual Studio / VSCode
+.vs/
+.vscode/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+logs/
+
+# Arquivos temporários
+[Tt]emp/
+*.tmp
+*.bak
+*.swp
+*.DS_Store
+Thumbs.db
+
+# Dados gerados por testes
+TestResults/
+*.coverage
+*.coveragejson
+
+# Pacotes
+*.nupkg
+*.snupkg
+packages/
+
+# Docker
+docker-data/
+*.pid
+
+# Publicação / artefatos
+publish/
+artifacts/
+
+# Secrets (importante!)
+# Se você criar variações locais de configs, ignore aqui
+appsettings.*.Local.json
+appsettings.Local.json
+
+# Rider / JetBrains
+.idea/
+
+# Cache do NuGet
+.nuget/
