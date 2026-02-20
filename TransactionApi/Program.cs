@@ -3,9 +3,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
+using TransactionApi.Domain.Entities;
 using TransactionApi.Infrastructure.Persistence;
-using TransactionApi.Outbox.Messaging;
 using TransactionApi.Outbox;
+using TransactionApi.Outbox.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,7 +42,7 @@ builder.Services
 // Controllers
 builder.Services.AddControllers();
 
-// Kafka producer (TransactionApi.Messaging.KafkaProducer)
+// Kafka producer
 builder.Services.AddSingleton<IKafkaProducer>(_ =>
 {
     var cfg = new ProducerConfig
@@ -56,18 +57,17 @@ builder.Services.AddSingleton<IKafkaProducer>(_ =>
 });
 
 // Outbox background worker
-builder.Services.AddHostedService<OutboxPublisherWorker>();
+builder.Services.AddHostedService<OutboxProcessor>();
 
 var app = builder.Build();
 
-// Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Health endpoint (com JSON bonitinho)
+// Health endpoint JSON
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>
@@ -83,6 +83,7 @@ app.MapHealthChecks("/health", new HealthCheckOptions
                 duration = e.Value.Duration.ToString()
             })
         };
+
         await context.Response.WriteAsJsonAsync(response);
     }
 });
@@ -94,7 +95,7 @@ using (var scope = app.Services.CreateScope())
 
     if (!db.Accounts.Any())
     {
-        db.Accounts.Add(new TransactionApi.Domain.Entities.Account
+        db.Accounts.Add(new Account
         {
             Id = Guid.NewGuid(),
             HolderName = "Test User",
@@ -102,10 +103,10 @@ using (var scope = app.Services.CreateScope())
             Version = 0,
             CreatedAt = DateTime.UtcNow
         });
+
         db.SaveChanges();
     }
 }
 
 app.MapControllers();
-
 app.Run();

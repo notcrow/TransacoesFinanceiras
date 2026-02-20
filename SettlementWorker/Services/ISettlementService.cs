@@ -6,6 +6,6 @@ namespace SettlementWorker.Services
 {
     public interface ISettlementService
     {
-        Task ProcessAsync(TransactionAuthorizedEvent evt, string settledTopic, CancellationToken ct);
+        Task ProcessAsync(TransactionAuthorizedEvent evt, string settledTopic,CancellationToken ct);
     }
 }

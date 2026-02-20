@@ -77,11 +77,11 @@ public sealed class ProjectionConsumerWorker : BackgroundService
             {
                 AccountId = evt.AccountId,
                 HolderName = "Unknown",
-                CurrentBalance = evt.NewBalance
+                CurrentBalance = evt.CurrentBalance
             };
         }
 
-        existing.CurrentBalance = evt.NewBalance;
+        existing.CurrentBalance = evt.CurrentBalance;
         existing.LastUpdatedAt = DateTime.UtcNow;
 
         existing.Transactions.Add(new StatementTransaction

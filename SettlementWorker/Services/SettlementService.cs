@@ -1,9 +1,9 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SettlementWorker.Messaging;
 using SettlementWorker.Messaging.Events;
 using SettlementWorker.Persistence;
-using SettlementWorker.Persistence.Entities;
 
 namespace SettlementWorker.Services
 {
@@ -23,29 +23,40 @@ namespace SettlementWorker.Services
             _logger = logger;
         }
 
-        public async Task ProcessAsync(TransactionAuthorizedEvent evt, string settledTopic, CancellationToken ct)
+        public async Task ProcessAsync(
+            TransactionAuthorizedEvent evt,
+            string settledTopic,
+            CancellationToken ct)
         {
             // Carrega transação
             var tx = await _db.Transactions
                 .FirstOrDefaultAsync(t => t.Id == evt.TransactionId, ct)
-                ?? throw new InvalidOperationException($"Transaction not found {evt.TransactionId}");
+                ?? throw new InvalidOperationException(
+                    $"Transaction not found {evt.TransactionId}");
 
             const int SettledStatus = 4;
 
             // Idempotência: já liquidada → sai sem fazer nada
             if (tx.Status == SettledStatus)
             {
-                _logger.LogInformation("Transaction already settled {TxId}", evt.TransactionId);
+                _logger.LogInformation(
+                    "Transaction already settled {TxId}",
+                    evt.TransactionId);
                 return;
             }
 
             // Carrega conta
             var account = await _db.Accounts
                 .FirstOrDefaultAsync(a => a.Id == evt.AccountId, ct)
-                ?? throw new InvalidOperationException($"Account not found {evt.AccountId}");
+                ?? throw new InvalidOperationException(
+                    $"Account not found {evt.AccountId}");
 
             // Calcula novo saldo
-            var isDebit = string.Equals(evt.Type, "Debit", StringComparison.OrdinalIgnoreCase);
+            var isDebit = string.Equals(
+                evt.Type,
+                "Debit",
+                StringComparison.OrdinalIgnoreCase);
+
             var delta = isDebit ? -evt.Amount : evt.Amount;
 
             account.Balance += delta;
@@ -87,7 +98,9 @@ namespace SettlementWorker.Services
 
             _logger.LogInformation(
                 "Transaction settled {TxId}, Account={AccountId}, NewBalance={Balance}",
-                evt.TransactionId, evt.AccountId, account.Balance);
+                evt.TransactionId,
+                evt.AccountId,
+                account.Balance);
         }
     }
 }

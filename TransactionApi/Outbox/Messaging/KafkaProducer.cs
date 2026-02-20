@@ -8,7 +8,7 @@ namespace TransactionApi.Outbox.Messaging
             string topic,
             string key,
             string payload,
-            IDictionary<string, string>? headers,
+            IDictionary<string, string>? headers = null,
             CancellationToken ct = default);
     }
 
@@ -25,7 +25,7 @@ namespace TransactionApi.Outbox.Messaging
             string topic,
             string key,
             string payload,
-            IDictionary<string, string>? headers,
+            IDictionary<string, string>? headers = null,
             CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
@@ -45,7 +45,7 @@ namespace TransactionApi.Outbox.Messaging
                 }
             }
 
-            // ProduceAsync não aceita CancellationToken, então só usamos ct antes
+            // ProduceAsync não aceita CancellationToken, então usamos ct só antes
             await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
         }
 

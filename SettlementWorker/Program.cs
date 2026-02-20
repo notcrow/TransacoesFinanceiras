@@ -1,31 +1,47 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using SettlementWorker;
 using SettlementWorker.Messaging;
 using SettlementWorker.Persistence;
 using SettlementWorker.Services;
 
-var builder = Host.CreateApplicationBuilder(args);
-
-builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
-
-builder.Services.AddSingleton<IKafkaProducer>(_ =>
-{
-    var cfg = new ProducerConfig
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((context, services) =>
     {
-        BootstrapServers = builder.Configuration["Kafka:BootstrapServers"],
-        ClientId = "settlement-worker",
-        Acks = Acks.All,
-        EnableIdempotence = true
-    };
+        var configuration = context.Configuration;
 
-    return new KafkaProducer(cfg);
-});
+        // DbContext
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("Postgres")));
 
-builder.Services.AddScoped<ISettlementService, SettlementService>();
+        // Kafka producer (para TransactionSettled)
+        services.AddSingleton<IKafkaProducer>(_ =>
+        {
+            var cfg = new ProducerConfig
+            {
+                BootstrapServers = configuration["Kafka:BootstrapServers"],
+                ClientId = configuration["Kafka:ClientId"] ?? "settlement-worker",
+                Acks = Acks.All,
+                EnableIdempotence = true
+            };
 
-builder.Services.AddHostedService<SettlementConsumerWorker>();
+            return new KafkaProducer(cfg);
+        });
 
-var host = builder.Build();
-host.Run();
+        // SettlementService
+        services.AddScoped<ISettlementService, SettlementService>();
+
+        // Kafka consumer worker
+        services.AddHostedService<SettlementConsumer>();
+    })
+    .ConfigureLogging(logging =>
+    {
+        logging.ClearProviders();
+        logging.AddConsole();
+    })
+    .Build();
+
+await host.RunAsync();
