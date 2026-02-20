@@ -5,9 +5,10 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using SettlementWorker.Persistence.Entities;
+using BuildingBlocks.Domain.Entities;
 using SettlementWorker.Services;
-using Workers.Tests.Infrastructure;
+using BuildingBlocks.Infrastructure;
+using BuildingBlocks.Domain.Enums;
 
 namespace Workers.Tests;
 
@@ -32,8 +33,8 @@ public class SettlementServiceTests
             Id = Guid.NewGuid(),
             AccountId = account.Id,
             Amount = 50,
-            Type = 1, //Debit
-            Status = 2, // Authorized
+            Type = TransactionType.Debit,
+            Status = TransactionStatus.Authorized, 
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -62,7 +63,7 @@ public class SettlementServiceTests
         updatedAccount.Balance.Should().Be(19950);
 
         var updatedTx = await db.Transactions.FirstAsync(t => t.Id == transaction.Id);
-        updatedTx.Status.Should().Be(4); 
+        updatedTx.Status.Should().Be(TransactionStatus.Authorized); 
 
         producerMock.Verify(p =>
             p.ProduceAsync(

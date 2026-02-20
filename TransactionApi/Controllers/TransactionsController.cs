@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TransactionApi.Controllers.Requests;
 using TransactionApi.Controllers.Responses;
-using TransactionApi.Domain.Entities;
-using TransactionApi.Domain.Enums;
-using TransactionApi.Infrastructure.Persistence;
+using BuildingBlocks.Domain.Entities;
+using BuildingBlocks.Domain.Enums;
+using BuildingBlocks.Infrastructure.Persistence;
 using BuildingBlocks.Messaging.Events;
-using TransactionApi.Outbox;
+using BuildingBlocks.Messaging.Outbox;
 
 namespace TransactionApi.Controllers;
 

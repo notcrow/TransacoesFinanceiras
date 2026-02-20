@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using BuildingBlocks.Messaging.Events;
 using BuildingBlocks.Messaging.Kafka;
-using SettlementWorker.Persistence;
+using BuildingBlocks.Infrastructure.Persistence;
 using SettlementWorker.Services;
 using System.Text.Json;
 using BuildingBlocks.Messaging;

@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
-using TransactionApi.Domain.Entities;
-using TransactionApi.Infrastructure.Persistence;
+using BuildingBlocks.Domain.Entities;
+using BuildingBlocks.Infrastructure.Persistence;
 using TransactionApi.Outbox;
 using BuildingBlocks.Messaging.Kafka;
 

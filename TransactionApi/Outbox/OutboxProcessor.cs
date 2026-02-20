@@ -3,7 +3,8 @@ using BuildingBlocks.Messaging.Events;
 using BuildingBlocks.Messaging.Kafka;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using TransactionApi.Infrastructure.Persistence;
+using BuildingBlocks.Infrastructure.Persistence;
+using BuildingBlocks.Messaging.Outbox;
 
 namespace TransactionApi.Outbox
 {

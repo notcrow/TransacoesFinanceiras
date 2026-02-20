@@ -1,6 +1,6 @@
 ﻿using MongoDB.Driver;
 using BuildingBlocks.Messaging.Events;
-using ProjectionWorker.Projections;
+using BuildingBlocks.Projections;
 
 namespace ProjectionWorker.Infrastructure;
 

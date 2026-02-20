@@ -1,8 +1,9 @@
-﻿using BuildingBlocks.Messaging;
+﻿using BuildingBlocks.Domain.Enums;
+using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Events;
 using BuildingBlocks.Messaging.Kafka;
 using Microsoft.EntityFrameworkCore;
-using SettlementWorker.Persistence;
+using BuildingBlocks.Infrastructure.Persistence;
 using System.Text.Json;
 
 namespace SettlementWorker.Services
@@ -34,10 +35,8 @@ namespace SettlementWorker.Services
                 ?? throw new InvalidOperationException(
                     $"Transaction not found {evt.TransactionId}");
 
-            const int SettledStatus = 4;
-
             // Idempotência: já liquidada → sai sem fazer nada
-            if (tx.Status == SettledStatus)
+            if (tx.Status == TransactionStatus.Settled)
             {
                 _logger.LogInformation(
                     "Transaction already settled {TxId}",
@@ -60,7 +59,7 @@ namespace SettlementWorker.Services
             var delta = isDebit ? -evt.Amount : evt.Amount;
 
             account.Balance += delta;
-            tx.Status = SettledStatus;
+            tx.Status = TransactionStatus.Settled;
             tx.UpdatedAt = DateTime.UtcNow;
 
             if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")

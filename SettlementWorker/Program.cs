@@ -2,7 +2,7 @@ using BuildingBlocks.Messaging.Kafka;
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using SettlementWorker;
-using SettlementWorker.Persistence;
+using BuildingBlocks.Infrastructure.Persistence;
 using SettlementWorker.Services;
 
 var host = Host.CreateDefaultBuilder(args)

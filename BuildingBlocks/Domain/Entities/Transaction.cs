@@ -1,6 +1,6 @@
-﻿using TransactionApi.Domain.Enums;
+﻿using BuildingBlocks.Domain.Enums;
 
-namespace TransactionApi.Domain.Entities;
+namespace BuildingBlocks.Domain.Entities;
 
 public class Transaction
 {

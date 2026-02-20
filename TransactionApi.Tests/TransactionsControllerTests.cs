@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using TransactionApi.Controllers;
 using TransactionApi.Controllers.Requests;
 using TransactionApi.Controllers.Responses;
-using TransactionApi.Domain.Entities;
-using TransactionApi.Domain.Enums;
-using TransactionApi.Tests.Infrastructure;
+using BuildingBlocks.Domain.Entities;
+using BuildingBlocks.Domain.Enums;
+using BuildingBlocks.Infrastructure;
 using Xunit;
 
 namespace TransactionApi.Tests.Controllers

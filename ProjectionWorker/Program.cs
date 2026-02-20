@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ProjectionWorker;
 using ProjectionWorker.Infrastructure;
-using ProjectionWorker.Projections;
+using BuildingBlocks.Projections;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>

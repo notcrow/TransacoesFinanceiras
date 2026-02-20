@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using BuildingBlocks.Messaging.Events;
-using ProjectionWorker.Projections;
+using BuildingBlocks.Projections;
 
 namespace ProjectionWorker;
 

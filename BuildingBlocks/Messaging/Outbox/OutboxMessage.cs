@@ -1,4 +1,4 @@
-﻿namespace TransactionApi.Outbox;
+﻿namespace BuildingBlocks.Messaging.Outbox;
 
 public class OutboxMessage
 {

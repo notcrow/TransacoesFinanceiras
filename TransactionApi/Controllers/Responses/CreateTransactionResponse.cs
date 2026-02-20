@@ -1,4 +1,4 @@
-﻿using TransactionApi.Domain.Enums;
+﻿using BuildingBlocks.Domain.Enums;
 
 namespace TransactionApi.Controllers.Responses;
 

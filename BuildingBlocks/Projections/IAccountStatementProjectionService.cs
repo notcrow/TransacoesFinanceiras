@@ -1,6 +1,6 @@
 ﻿using BuildingBlocks.Messaging.Events;
 
-namespace ProjectionWorker.Projections;
+namespace BuildingBlocks.Projections;
 
 public interface IAccountStatementProjectionService
 {

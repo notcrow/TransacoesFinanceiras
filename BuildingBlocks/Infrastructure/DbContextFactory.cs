@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TransactionApi.Infrastructure.Persistence;
+using BuildingBlocks.Infrastructure.Persistence;
 
-namespace TransactionApi.Tests.Infrastructure;
+namespace BuildingBlocks.Infrastructure;
 
 public static class DbContextFactory
 {

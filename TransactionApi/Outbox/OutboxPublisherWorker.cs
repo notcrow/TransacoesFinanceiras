@@ -1,8 +1,9 @@
 ﻿using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Kafka;
+using BuildingBlocks.Messaging.Outbox;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using TransactionApi.Infrastructure.Persistence;
+using BuildingBlocks.Infrastructure.Persistence;
 
 namespace TransactionApi.Outbox
 {

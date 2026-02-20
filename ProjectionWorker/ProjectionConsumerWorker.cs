@@ -2,7 +2,7 @@
 using Confluent.Kafka;
 using MongoDB.Driver;
 using BuildingBlocks.Messaging.Events;
-using ProjectionWorker.ReadModel;
+using BuildingBlocks.Projections;
 
 namespace ProjectionWorker;
 
@@ -82,14 +82,14 @@ public sealed class ProjectionConsumerWorker : BackgroundService
         }
 
         existing.CurrentBalance = evt.CurrentBalance;
-        existing.LastUpdatedAt = DateTime.UtcNow;
+        existing.LastUpdated = DateTime.UtcNow;
 
-        existing.Transactions.Add(new StatementTransaction
+        existing.Transactions.Add(new AccountStatementTransaction
         {
             TransactionId = evt.TransactionId,
             Amount = 0, // poderia enriquecer depois
             Type = "Settled",
-            OccurredAtUtc = evt.OccurredAtUtc
+            ProcessedAt = evt.OccurredAtUtc
         });
 
         await _collection.ReplaceOneAsync(
