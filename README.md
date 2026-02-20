@@ -44,7 +44,7 @@ A solução é composta por uma API REST para transações financeiras e dois Wo
    ```sh
    docker-compose up --build
    ```
-3. Acesse a API em `http://localhost:5150/swagger`.
+3. Acesse a API em `http://localhost:5000` (ou a porta configurada).
 
 
 ## Tutorial Docker Compose
@@ -98,6 +98,23 @@ O arquivo `docker-compose.yml` está localizado na raiz do projeto e orquestra t
    dotnet run --project ProjectionWorker
    ```
 
+7. Acesse: `http://localhost:5150/swagger` para interagir com a API.
+
+8. Para acompanhar os registro no banco de dados pode utilizar os comandos:
+
+Para PostgreSQL:
+   ```sh
+   docker exec -it finance_postgres psql -U postgres -d finance -c "SELECT \"EventType\", \"Processed\" FROM \"Outbox\" ORDER BY \"OccurredAt\" DESC LIMIT 5;"
+   ```
+   Para MongoDB:
+   ```sh
+   docker exec -it finance_mongo mongosh finance-read --eval \
+   'db.account_statement.find().sort({ LastUpdated: -1 }).limit(5)'
+   ```
+   Para o Kafka:
+   ```sh
+   docker exec -it finance_kafka bash -lc "kafka-console-consumer --bootstrap-server localhost:9092 --topic transaction-settled --from-beginning --timeout-ms 5000"
+   ```
 ## Estrutura do Projeto
 
 ```
