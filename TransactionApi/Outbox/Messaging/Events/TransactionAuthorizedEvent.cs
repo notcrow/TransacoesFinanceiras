@@ -1,4 +1,4 @@
-﻿namespace TransactionApi.Messaging.Events;
+﻿namespace TransactionApi.Outbox.Messaging.Events;
 
 public record TransactionAuthorizedEvent(
     Guid TransactionId,

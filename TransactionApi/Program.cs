@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
 using TransactionApi.Infrastructure.Persistence;
-using TransactionApi.Messaging;
+using TransactionApi.Outbox.Messaging;
 using TransactionApi.Outbox;
 
 var builder = WebApplication.CreateBuilder(args);
