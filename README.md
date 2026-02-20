@@ -119,11 +119,22 @@ O arquivo `docker-compose.yml` está localizado na raiz do projeto e orquestra t
 ├── TransactionApi/                # API de transações (PostgreSQL)
 │   ├── Controllers/
 │   ├── Application/
-│   ├── Domain/
-│   └── ...
+│   └── Outbox/
 ├── SettlementWorker/              # Worker para processamento de transações (PostgreSQL)
+│   └── Services/
 ├── ProjectionWorker/              # Worker para projeções de leitura (MongoDB)
+│   └── Infrastructure/
 ├── BuildingBlocks/                # Componentes compartilhados (Entidades, Infraestrutura)
+│   ├── Domain/
+│   │	├──Entities/
+│   │	└──Enums/
+│   ├── Infrastructure/
+│   │	└──Persistence/
+│   ├── Messaging/
+│   │	├──Events/
+│   │	├──Kafka/
+│   │	└──Outbox/
+│   └── Projections/
 ├── TransactionApi.Tests/          # Testes da API
 ├── Workers.Tests/                 # Testes dos Workers
 ├── docker-compose.yml             # Orquestração dos serviços
