@@ -1,10 +1,10 @@
-﻿using BuildingBlocks.Messaging;
+﻿using BuildingBlocks.Infrastructure.Persistence;
+using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Events;
 using BuildingBlocks.Messaging.Kafka;
+using BuildingBlocks.Messaging.Outbox;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using BuildingBlocks.Infrastructure.Persistence;
-using BuildingBlocks.Messaging.Outbox;
 
 namespace TransactionApi.Outbox
 {
@@ -70,7 +70,6 @@ namespace TransactionApi.Outbox
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
-                    // shutdown
                     break;
                 }
                 catch (Exception ex)

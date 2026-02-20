@@ -1,12 +1,8 @@
-﻿using System.Text.Json;
-using BuildingBlocks.Messaging;
-using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+﻿using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Events;
 using BuildingBlocks.Projections;
+using Confluent.Kafka;
+using System.Text.Json;
 
 namespace ProjectionWorker;
 

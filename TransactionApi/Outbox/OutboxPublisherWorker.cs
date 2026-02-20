@@ -1,9 +1,9 @@
-﻿using BuildingBlocks.Messaging;
+﻿using BuildingBlocks.Infrastructure.Persistence;
+using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Kafka;
 using BuildingBlocks.Messaging.Outbox;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using BuildingBlocks.Infrastructure.Persistence;
 
 namespace TransactionApi.Outbox
 {
@@ -28,7 +28,7 @@ namespace TransactionApi.Outbox
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("OutboxPublisherWorker started.");
+            _logger.LogInformation("OutboxPublisherWorker Iniciado.");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -38,13 +38,13 @@ namespace TransactionApi.Outbox
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "OutboxPublisherWorker failed.");
+                    _logger.LogError(ex, "OutboxPublisherWorker Falhou.");
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
             }
 
-            _logger.LogInformation("OutboxPublisherWorker stopping.");
+            _logger.LogInformation("OutboxPublisherWorker parando.");
         }
 
         private async Task PublishPendingAsync(CancellationToken ct)
@@ -54,11 +54,10 @@ namespace TransactionApi.Outbox
 
             const int batchSize = 20;
 
-            var pending = await db.Outbox
-                .Where(x => !x.Processed)
-                .OrderBy(x => x.OccurredAt)
-                .Take(batchSize)
-                .ToListAsync(ct);
+            var pending = await db.Outbox.Where(x => !x.Processed)
+                                         .OrderBy(x => x.OccurredAt)
+                                         .Take(batchSize)
+                                         .ToListAsync(ct);
 
             if (pending.Count == 0)
                 return;
@@ -106,7 +105,7 @@ namespace TransactionApi.Outbox
                         _logger.LogError(
                             "Failed to publish to DLT. Keeping message unprocessed. OutboxId={OutboxId}",
                             msg.Id);
-                        continue; // não marca Processed, tenta de novo no futuro
+                        continue;
                     }
                 }
 
@@ -151,7 +150,6 @@ namespace TransactionApi.Outbox
             }
             catch
             {
-                // ignore parse errors
             }
 
             return null;
@@ -181,10 +179,9 @@ namespace TransactionApi.Outbox
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(
-                        ex,
-                        "Publish failed. Attempt={Attempt}/{Max} Topic={Topic} OutboxId={OutboxId}",
-                        attempt, maxAttempts, topic, msg.Id);
+                    _logger.LogWarning(ex,
+                                       "Publish failed. Attempt={Attempt}/{Max} Topic={Topic} OutboxId={OutboxId}",
+                                       attempt, maxAttempts, topic, msg.Id);
 
                     if (attempt == maxAttempts)
                         return false;

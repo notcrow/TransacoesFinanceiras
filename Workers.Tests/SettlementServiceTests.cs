@@ -1,14 +1,14 @@
-﻿using BuildingBlocks.Messaging;
+﻿using BuildingBlocks.Domain.Entities;
+using BuildingBlocks.Domain.Enums;
+using BuildingBlocks.Infrastructure;
+using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Events;
 using BuildingBlocks.Messaging.Kafka;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using BuildingBlocks.Domain.Entities;
 using SettlementWorker.Services;
-using BuildingBlocks.Infrastructure;
-using BuildingBlocks.Domain.Enums;
 
 namespace Workers.Tests;
 

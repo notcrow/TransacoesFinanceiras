@@ -1,16 +1,15 @@
+using BuildingBlocks.Domain.Entities;
+using BuildingBlocks.Infrastructure.Persistence;
+using BuildingBlocks.Messaging.Kafka;
 using Confluent.Kafka;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
-using BuildingBlocks.Domain.Entities;
-using BuildingBlocks.Infrastructure.Persistence;
 using TransactionApi.Outbox;
-using BuildingBlocks.Messaging.Kafka;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -29,20 +28,16 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
-// DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
-// HealthChecks
 builder.Services
     .AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("Postgres")!)
     .AddCheck("self", () => HealthCheckResult.Healthy());
 
-// Controllers
 builder.Services.AddControllers();
 
-// Kafka producer
 builder.Services.AddSingleton<IKafkaProducer>(_ =>
 {
     var cfg = new ProducerConfig
@@ -56,7 +51,6 @@ builder.Services.AddSingleton<IKafkaProducer>(_ =>
     return new KafkaProducer(cfg);
 });
 
-// Outbox background worker
 builder.Services.AddHostedService<OutboxProcessor>();
 
 var app = builder.Build();
@@ -67,7 +61,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Health endpoint JSON
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>
@@ -88,7 +81,6 @@ app.MapHealthChecks("/health", new HealthCheckOptions
     }
 });
 
-// Seed simples de conta de teste
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

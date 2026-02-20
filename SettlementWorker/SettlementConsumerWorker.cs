@@ -1,11 +1,10 @@
-﻿using Confluent.Kafka;
-using Microsoft.EntityFrameworkCore;
+﻿using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Events;
 using BuildingBlocks.Messaging.Kafka;
-using BuildingBlocks.Infrastructure.Persistence;
+using Confluent.Kafka;
+using Microsoft.EntityFrameworkCore;
 using SettlementWorker.Services;
 using System.Text.Json;
-using BuildingBlocks.Messaging;
 
 namespace SettlementWorker;
 

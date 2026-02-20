@@ -1,9 +1,9 @@
 ﻿using BuildingBlocks.Domain.Enums;
+using BuildingBlocks.Infrastructure.Persistence;
 using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Events;
 using BuildingBlocks.Messaging.Kafka;
 using Microsoft.EntityFrameworkCore;
-using BuildingBlocks.Infrastructure.Persistence;
 using System.Text.Json;
 
 namespace SettlementWorker.Services
@@ -24,18 +24,13 @@ namespace SettlementWorker.Services
             _logger = logger;
         }
 
-        public async Task ProcessAsync(
-            TransactionAuthorizedEvent evt,
-            string settledTopic,
-            CancellationToken ct)
+        public async Task ProcessAsync(TransactionAuthorizedEvent evt,string settledTopic,CancellationToken ct)
         {
-            // Carrega transação
             var tx = await _db.Transactions
                 .FirstOrDefaultAsync(t => t.Id == evt.TransactionId, ct)
                 ?? throw new InvalidOperationException(
                     $"Transaction not found {evt.TransactionId}");
 
-            // Idempotência: já liquidada → sai sem fazer nada
             if (tx.Status == TransactionStatus.Settled)
             {
                 _logger.LogInformation(
@@ -44,13 +39,11 @@ namespace SettlementWorker.Services
                 return;
             }
 
-            // Carrega conta
             var account = await _db.Accounts
                 .FirstOrDefaultAsync(a => a.Id == evt.AccountId, ct)
                 ?? throw new InvalidOperationException(
                     $"Account not found {evt.AccountId}");
 
-            // Calcula novo saldo
             var isDebit = string.Equals(
                 evt.Type,
                 "Debit",
@@ -64,7 +57,6 @@ namespace SettlementWorker.Services
 
             if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
             {
-                // InMemory não suporta BeginTransaction, só salva
                 await _db.SaveChangesAsync(ct);
             }
             else
@@ -74,7 +66,6 @@ namespace SettlementWorker.Services
                 await dbTx.CommitAsync(ct);
             }
 
-            // Publica evento TransactionSettled
             var settledEvt = new TransactionSettledEvent(
                 evt.TransactionId,
                 evt.AccountId,

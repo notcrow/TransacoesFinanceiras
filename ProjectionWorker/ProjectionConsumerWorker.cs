@@ -1,8 +1,8 @@
-﻿using System.Text.Json;
+﻿using BuildingBlocks.Messaging.Events;
+using BuildingBlocks.Projections;
 using Confluent.Kafka;
 using MongoDB.Driver;
-using BuildingBlocks.Messaging.Events;
-using BuildingBlocks.Projections;
+using System.Text.Json;
 
 namespace ProjectionWorker;
 
@@ -87,7 +87,7 @@ public sealed class ProjectionConsumerWorker : BackgroundService
         existing.Transactions.Add(new AccountStatementTransaction
         {
             TransactionId = evt.TransactionId,
-            Amount = 0, // poderia enriquecer depois
+            Amount = 0,
             Type = "Settled",
             ProcessedAt = evt.OccurredAtUtc
         });

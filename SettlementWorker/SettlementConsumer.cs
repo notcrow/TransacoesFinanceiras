@@ -1,8 +1,8 @@
-﻿using Confluent.Kafka;
+﻿using BuildingBlocks.Messaging;
 using BuildingBlocks.Messaging.Events;
+using Confluent.Kafka;
 using SettlementWorker.Services;
 using System.Text.Json;
-using BuildingBlocks.Messaging;
 
 namespace SettlementWorker;
 

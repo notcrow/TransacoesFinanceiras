@@ -1,8 +1,8 @@
+using BuildingBlocks.Infrastructure.Persistence;
 using BuildingBlocks.Messaging.Kafka;
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using SettlementWorker;
-using BuildingBlocks.Infrastructure.Persistence;
 using SettlementWorker.Services;
 
 var host = Host.CreateDefaultBuilder(args)
@@ -10,11 +10,8 @@ var host = Host.CreateDefaultBuilder(args)
     {
         var configuration = context.Configuration;
 
-        // DbContext
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("Postgres")));
+        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Postgres")));
 
-        // Kafka producer (para TransactionSettled)
         services.AddSingleton<IKafkaProducer>(_ =>
         {
             var cfg = new ProducerConfig
@@ -28,10 +25,7 @@ var host = Host.CreateDefaultBuilder(args)
             return new KafkaProducer(cfg);
         });
 
-        // SettlementService
         services.AddScoped<ISettlementService, SettlementService>();
-
-        // Kafka consumer worker
         services.AddHostedService<SettlementConsumer>();
     })
     .ConfigureLogging(logging =>

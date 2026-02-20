@@ -43,7 +43,6 @@ public class MongoAccountStatementProjectionService : IAccountStatementProjectio
             return;
         }
 
-        // ✅ Idempotência: se a transação já está registrada, não faz nada
         if (existing.Transactions.Any(t => t.TransactionId == evt.TransactionId))
             return;
 
