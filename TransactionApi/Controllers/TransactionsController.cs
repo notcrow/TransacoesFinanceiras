@@ -1,13 +1,8 @@
-﻿using System.Text.Json;
+﻿using BuildingBlocks.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TransactionApi.Controllers.Requests;
-using TransactionApi.Controllers.Responses;
-using BuildingBlocks.Domain.Entities;
-using BuildingBlocks.Domain.Enums;
-using BuildingBlocks.Infrastructure.Persistence;
-using BuildingBlocks.Messaging.Events;
-using BuildingBlocks.Messaging.Outbox;
+using TransactionApi.Application.Business;
+using TransactionApi.Application.Requests;
+using TransactionApi.Application.Responses;
 
 namespace TransactionApi.Controllers;
 
@@ -16,10 +11,12 @@ namespace TransactionApi.Controllers;
 public class TransactionsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly ITransactionsBusiness _transactionBusiness;
 
-    public TransactionsController(AppDbContext db)
+    public TransactionsController(AppDbContext db, ITransactionsBusiness transactionsBusiness)
     {
         _db = db;
+        _transactionBusiness = transactionsBusiness;
     }
 
     /// <summary>
@@ -41,84 +38,23 @@ public class TransactionsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateTransactionResponse>> Create([FromBody] CreateTransactionRequest request,CancellationToken ct)
     {
-        if (request.Amount <= 0)
-            return BadRequest("O valor da Transação deve ser maior que 0.");
+        var result = await _transactionBusiness.CreateTransactionAsync(request, ct);
 
-        if (!Enum.TryParse<TransactionType>(request.Type, ignoreCase: true, out var type))
-            return BadRequest("O tipo de Transação deve ser 'Debit' ou 'Credit'.");
-
-        var account = await _db.Accounts.FirstOrDefaultAsync(a => a.Id == request.AccountId, ct);
-        if (account is null)
-            return NotFound("Conta não encontrada.");
-
-        var status = TransactionStatus.Authorized;
-
-        if (type == TransactionType.Debit)
+        if (!result.Success)
         {
-            if (account.Balance - request.Amount < 0)
-                return BadRequest("Saldo Insuficiente para Transação.");
-
-            if (request.Amount > 10_000m)
-                status = TransactionStatus.PendingReview;
-        }
-
-        var now = DateTime.UtcNow;
-
-        var transaction = new Transaction
-        {
-            Id = Guid.NewGuid(),
-            AccountId = account.Id,
-            Amount = request.Amount,
-            Type = type,
-            Status = status,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-
-        var correlationId = HttpContext?.TraceIdentifier ?? Guid.NewGuid().ToString("N");
-
-        OutboxMessage? outbox = null;
-
-        if (status == TransactionStatus.Authorized)
-        {
-            var evt = new TransactionAuthorizedEvent(TransactionId: transaction.Id,
-                                                     AccountId: transaction.AccountId,
-                                                     Amount: transaction.Amount,
-                                                     Type: transaction.Type.ToString(),
-                                                     CorrelationId: correlationId,
-                                                     OccurredAtUtc: now);
-
-            outbox = new OutboxMessage
+            return result.ErrorType switch
             {
-                Id = Guid.NewGuid(),
-                EventType = "TransactionAuthorized",
-                Payload = JsonSerializer.Serialize(evt),
-                OccurredAt = now,
-                Processed = false
+                TransactionErrorType.Validation => BadRequest(result.ErrorMessage),
+                TransactionErrorType.NotFound => NotFound(result.ErrorMessage),
+                _ => StatusCode(StatusCodes.Status500InternalServerError, result.ErrorMessage)
             };
         }
 
-        if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
-        {
-            _db.Transactions.Add(transaction);
-            if (outbox is not null)
-                _db.Outbox.Add(outbox);
+        // Persistência com outbox
+        _db.Transactions.Add(result.Transaction!);
+        if (result.Outbox != null) _db.Outbox.Add(result.Outbox);
 
-            await _db.SaveChangesAsync(ct);
-        }
-        else
-        {
-            await using var dbTransaction = await _db.Database.BeginTransactionAsync(ct);
-
-            _db.Transactions.Add(transaction);
-            if (outbox is not null)
-                _db.Outbox.Add(outbox);
-
-            await _db.SaveChangesAsync(ct);
-            await dbTransaction.CommitAsync(ct);
-        }
-
-        return Ok(new CreateTransactionResponse(transaction.Id, transaction.Status));
-
+        await _db.SaveChangesAsync(ct);
+        return Ok(new CreateTransactionResponse(result.Transaction!.Id, result.Transaction.Status));
     }
 }

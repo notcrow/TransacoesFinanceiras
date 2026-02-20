@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
+using TransactionApi.Application.Business;
 using TransactionApi.Outbox;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,16 +51,11 @@ builder.Services.AddSingleton<IKafkaProducer>(_ =>
 
     return new KafkaProducer(cfg);
 });
-
+builder.Services.AddScoped<ITransactionsBusiness, TransactionsBusiness>();
 builder.Services.AddHostedService<OutboxProcessor>();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
@@ -100,5 +96,10 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 app.MapControllers();
 app.Run();

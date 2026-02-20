@@ -1,4 +1,4 @@
-﻿namespace TransactionApi.Controllers.Requests;
+﻿namespace TransactionApi.Application.Requests;
 
 /// <summary>
 /// Request de criação de transação financeira.

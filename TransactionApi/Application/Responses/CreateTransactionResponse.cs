@@ -1,6 +1,6 @@
 ﻿using BuildingBlocks.Domain.Enums;
 
-namespace TransactionApi.Controllers.Responses;
+namespace TransactionApi.Application.Responses;
 
 /// <summary>
 /// Resposta da criação de transação.

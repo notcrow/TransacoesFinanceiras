@@ -3,9 +3,10 @@ using BuildingBlocks.Domain.Enums;
 using BuildingBlocks.Infrastructure;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using TransactionApi.Application.Responses;
 using TransactionApi.Controllers;
-using TransactionApi.Controllers.Requests;
-using TransactionApi.Controllers.Responses;
+using TransactionApi.Application.Requests;
+using TransactionApi.Application.Business;
 
 namespace TransactionApi.Tests.Controllers
 {
@@ -15,7 +16,8 @@ namespace TransactionApi.Tests.Controllers
         public async Task Create_ShouldReturnBadRequest_WhenAmountIsZeroOrNegative()
         {
             await using var db = DbContextFactory.Create();
-            var controller = new TransactionsController(db);
+            var transactionBusiness = new TransactionsBusiness(db);
+            var controller = new TransactionsController(db, transactionBusiness);
 
             var request = new CreateTransactionRequest(AccountId: Guid.NewGuid(),
                                                        Amount: 0m,
@@ -30,7 +32,8 @@ namespace TransactionApi.Tests.Controllers
         public async Task Create_ShouldReturnBadRequest_WhenTransactionTypeIsInvalid()
         {
             await using var db = DbContextFactory.Create();
-            var controller = new TransactionsController(db);
+            var transactionBusiness = new TransactionsBusiness(db);
+            var controller = new TransactionsController(db, transactionBusiness);
 
             var request = new CreateTransactionRequest(AccountId: Guid.NewGuid(),
                                                        Amount: 50m,
@@ -45,7 +48,8 @@ namespace TransactionApi.Tests.Controllers
         public async Task Create_ShouldReturnNotFound_WhenAccountDoesNotExist()
         {
             await using var db = DbContextFactory.Create();
-            var controller = new TransactionsController(db);
+            var transactionBusiness = new TransactionsBusiness(db);
+            var controller = new TransactionsController(db, transactionBusiness);
 
             var request = new CreateTransactionRequest(AccountId: Guid.NewGuid(),
                                                        Amount: 50m,
@@ -60,6 +64,7 @@ namespace TransactionApi.Tests.Controllers
         public async Task Create_ShouldReturnBadRequest_WhenInsufficientBalance()
         {
             await using var db = DbContextFactory.Create();
+            var transactionBusiness = new TransactionsBusiness(db);
 
             var account = new Account
             {
@@ -72,7 +77,7 @@ namespace TransactionApi.Tests.Controllers
             db.Accounts.Add(account);
             await db.SaveChangesAsync();
 
-            var controller = new TransactionsController(db);
+            var controller = new TransactionsController(db, transactionBusiness);
 
             var request = new CreateTransactionRequest(
                 AccountId: account.Id,
@@ -91,6 +96,7 @@ namespace TransactionApi.Tests.Controllers
         public async Task Create_ShouldCreateTransactionAndOutbox_WhenValidDebit()
         {
             await using var db = DbContextFactory.Create();
+            var transactionBusiness = new TransactionsBusiness(db);
 
             var account = new Account
             {
@@ -103,7 +109,7 @@ namespace TransactionApi.Tests.Controllers
             db.Accounts.Add(account);
             await db.SaveChangesAsync();
 
-            var controller = new TransactionsController(db);
+            var controller = new TransactionsController(db, transactionBusiness);
 
             var request = new CreateTransactionRequest(AccountId: account.Id,
                                                        Amount: 50m,
@@ -126,6 +132,7 @@ namespace TransactionApi.Tests.Controllers
         public async Task Create_ShouldSetStatusPendingReview_WhenHighValueDebit()
         {
             await using var db = DbContextFactory.Create();
+            var transactionBusiness = new TransactionsBusiness(db);
 
             var account = new Account
             {
@@ -138,7 +145,7 @@ namespace TransactionApi.Tests.Controllers
             db.Accounts.Add(account);
             await db.SaveChangesAsync();
 
-            var controller = new TransactionsController(db);
+            var controller = new TransactionsController(db, transactionBusiness);
 
             var request = new CreateTransactionRequest(AccountId: account.Id,
                                                        Amount: 20_000m, 

@@ -63,7 +63,7 @@ public class SettlementServiceTests
         updatedAccount.Balance.Should().Be(19950);
 
         var updatedTx = await db.Transactions.FirstAsync(t => t.Id == transaction.Id);
-        updatedTx.Status.Should().Be(TransactionStatus.Authorized); 
+        updatedTx.Status.Should().Be(TransactionStatus.Settled); 
 
         producerMock.Verify(p =>
             p.ProduceAsync(
