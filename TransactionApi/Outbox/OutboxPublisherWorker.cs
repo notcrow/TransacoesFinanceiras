@@ -1,171 +1,207 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using TransactionApi.Infrastructure.Persistence;
 using TransactionApi.Messaging;
 
-namespace TransactionApi.Outbox;
-
-public sealed class OutboxPublisherWorker : BackgroundService
+namespace TransactionApi.Outbox
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly IKafkaProducer _producer;
-    private readonly ILogger<OutboxPublisherWorker> _logger;
-    private readonly IConfiguration _config;
-
-    public OutboxPublisherWorker(
-        IServiceScopeFactory scopeFactory,
-        IKafkaProducer producer,
-        IConfiguration config,
-        ILogger<OutboxPublisherWorker> logger)
+    public sealed class OutboxPublisherWorker : BackgroundService
     {
-        _scopeFactory = scopeFactory;
-        _producer = producer;
-        _config = config;
-        _logger = logger;
-    }
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IKafkaProducer _producer;
+        private readonly ILogger<OutboxPublisherWorker> _logger;
+        private readonly IConfiguration _config;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        _logger.LogInformation("OutboxPublisherWorker started.");
+        public OutboxPublisherWorker(
+            IServiceScopeFactory scopeFactory,
+            IKafkaProducer producer,
+            IConfiguration config,
+            ILogger<OutboxPublisherWorker> logger)
+        {
+            _scopeFactory = scopeFactory;
+            _producer = producer;
+            _config = config;
+            _logger = logger;
+        }
 
-        while (!stoppingToken.IsCancellationRequested)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("OutboxPublisherWorker started.");
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await PublishPendingAsync(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "OutboxPublisherWorker failed.");
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+            }
+
+            _logger.LogInformation("OutboxPublisherWorker stopping.");
+        }
+
+        private async Task PublishPendingAsync(CancellationToken ct)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            const int batchSize = 20;
+
+            var pending = await db.Outbox
+                .Where(x => !x.Processed)
+                .OrderBy(x => x.OccurredAt)
+                .Take(batchSize)
+                .ToListAsync(ct);
+
+            if (pending.Count == 0)
+                return;
+
+            foreach (var msg in pending)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var topic = ResolveTopic(msg.EventType);
+                var dltTopic = ResolveDeadLetterTopic();
+
+                var correlationId = TryExtractCorrelationId(msg.Payload) ?? msg.Id.ToString("N");
+
+                var headers = new Dictionary<string, string>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["EventType"] = msg.EventType
+                };
+
+                var published = await TryPublishWithRetryAsync(topic, msg, headers, ct);
+
+                if (!published)
+                {
+                    var dltPayload = JsonSerializer.Serialize(new
+                    {
+                        originalEventType = msg.EventType,
+                        originalOutboxId = msg.Id,
+                        occurredAtUtc = msg.OccurredAt,
+                        payload = JsonSerializer.Deserialize<object>(msg.Payload)
+                    });
+
+                    _logger.LogWarning(
+                        "Sending message to DLT. OutboxId={OutboxId} EventType={EventType}",
+                        msg.Id, msg.EventType);
+
+                    var dltHeaders = new Dictionary<string, string>(headers)
+                    {
+                        ["IsDeadLetter"] = "true"
+                    };
+
+                    var dltOk = await TryPublishWithRetryAsync(dltTopic, msg, dltHeaders, ct, overridePayload: dltPayload);
+
+                    if (!dltOk)
+                    {
+                        _logger.LogError(
+                            "Failed to publish to DLT. Keeping message unprocessed. OutboxId={OutboxId}",
+                            msg.Id);
+                        continue; // não marca Processed, tenta de novo no futuro
+                    }
+                }
+
+                msg.Processed = true;
+                await db.SaveChangesAsync(ct);
+
+                _logger.LogInformation(
+                    "Outbox processed. OutboxId={OutboxId} EventType={EventType} Topic={Topic}",
+                    msg.Id, msg.EventType, published ? topic : dltTopic);
+            }
+        }
+
+        private string ResolveTopic(string eventType)
+        {
+            var topic = _config[$"Kafka:Topics:{eventType}"];
+
+            if (string.IsNullOrWhiteSpace(topic))
+            {
+                throw new InvalidOperationException(
+                    $"No Kafka topic configured for EventType '{eventType}'. Configure Kafka:Topics:{eventType}.");
+            }
+
+            return topic;
+        }
+
+        private string ResolveDeadLetterTopic()
+        {
+            return _config["Kafka:Topics:DeadLetter"] ?? "transaction-dead-letter";
+        }
+
+        private static string? TryExtractCorrelationId(string jsonPayload)
         {
             try
             {
-                await PublishPendingAsync(stoppingToken);
+                using var doc = JsonDocument.Parse(jsonPayload);
+
+                if (doc.RootElement.TryGetProperty("CorrelationId", out var p) &&
+                    p.ValueKind == JsonValueKind.String)
+                {
+                    return p.GetString();
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError(ex, "OutboxPublisherWorker failed.");
+                // ignore parse errors
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+            return null;
         }
-    }
 
-    private async Task PublishPendingAsync(CancellationToken ct)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        var pending = await db.Outbox
-            .Where(x => !x.Processed)
-            .OrderBy(x => x.OccurredAt)
-            .Take(20)
-            .ToListAsync(ct);
-
-        if (pending.Count == 0)
-            return;
-
-        foreach (var msg in pending)
+        private async Task<bool> TryPublishWithRetryAsync(
+            string topic,
+            OutboxMessage msg,
+            IDictionary<string, string> headers,
+            CancellationToken ct,
+            string? overridePayload = null)
         {
-            ct.ThrowIfCancellationRequested();
+            var payload = overridePayload ?? msg.Payload;
+            var key = msg.Id.ToString("N");
 
-            var topic = ResolveTopic(msg.EventType);
-            var dltTopic = ResolveDeadLetterTopic();
+            const int maxAttempts = 5;
+            const int baseDelayMs = 250;
 
-            var correlationId = TryExtractCorrelationId(msg.Payload) ?? msg.Id.ToString("N");
-            var headers = new Dictionary<string, string>
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                ["CorrelationId"] = correlationId,
-                ["EventType"] = msg.EventType
-            };
+                ct.ThrowIfCancellationRequested();
 
-            var published = await TryPublishWithRetryAsync(topic, msg, headers, ct);
-
-            if (!published)
-            {
-                var dltPayload = JsonSerializer.Serialize(new
+                try
                 {
-                    originalEventType = msg.EventType,
-                    originalOutboxId = msg.Id,
-                    occurredAtUtc = msg.OccurredAt,
-                    payload = JsonSerializer.Deserialize<JsonElement>(msg.Payload)
-                });
-
-                _logger.LogWarning("Sending message to DLT. OutboxId={OutboxId} EventType={EventType}", msg.Id, msg.EventType);
-
-                var dltOk = await TryPublishWithRetryAsync(dltTopic, msg,
-                                                           new Dictionary<string, string>(headers) { ["IsDeadLetter"] = "true" },
-                                                           ct,
-                                                           overridePayload: dltPayload);
-
-                if (!dltOk)
+                    await _producer.ProduceAsync(topic, key, payload, headers, ct);
+                    return true;
+                }
+                catch (Exception ex)
                 {
-                    _logger.LogError("Failed to publish to DLT. Keeping message unprocessed. OutboxId={OutboxId}", msg.Id);
-                    continue;
+                    _logger.LogWarning(
+                        ex,
+                        "Publish failed. Attempt={Attempt}/{Max} Topic={Topic} OutboxId={OutboxId}",
+                        attempt, maxAttempts, topic, msg.Id);
+
+                    if (attempt == maxAttempts)
+                        return false;
+
+                    var delay = TimeSpan.FromMilliseconds(baseDelayMs * Math.Pow(2, attempt - 1));
+                    await Task.Delay(delay, ct);
                 }
             }
 
-            msg.Processed = true;
-            await db.SaveChangesAsync(ct);
-
-            _logger.LogInformation("Outbox processed. OutboxId={OutboxId} EventType={EventType} Topic={Topic}",
-                msg.Id, msg.EventType, published ? topic : dltTopic);
+            return false;
         }
-    }
-
-    private string ResolveTopic(string eventType)
-    {
-        var topic = _config[$"Kafka:Topics:{eventType}"];
-        if (string.IsNullOrWhiteSpace(topic))
-            throw new InvalidOperationException($"No Kafka topic configured for EventType '{eventType}'. Configure Kafka:Topics:{eventType}.");
-        return topic;
-    }
-
-    private string ResolveDeadLetterTopic()
-    {
-        return _config["Kafka:Topics:DeadLetter"] ?? "dead-letter";
-    }
-
-    private static string? TryExtractCorrelationId(string jsonPayload)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(jsonPayload);
-            if (doc.RootElement.TryGetProperty("CorrelationId", out var p) && p.ValueKind == JsonValueKind.String)
-                return p.GetString();
-        }
-        catch { /* ignore */ }
-
-        return null;
-    }
-
-    private async Task<bool> TryPublishWithRetryAsync(
-        string topic,
-        OutboxMessage msg,
-        IDictionary<string, string> headers,
-        CancellationToken ct,
-        string? overridePayload = null)
-    {
-        var payload = overridePayload ?? msg.Payload;
-        var key = msg.Id.ToString("N");
-
-        var maxAttempts = 5;
-        var baseDelayMs = 250;
-
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                await _producer.ProduceAsync(topic, key, payload, headers, ct);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "Publish failed. Attempt={Attempt}/{Max} Topic={Topic} OutboxId={OutboxId}",
-                    attempt, maxAttempts, topic, msg.Id);
-
-                if (attempt == maxAttempts)
-                    return false;
-
-                // exponential backoff (250ms, 500ms, 1000ms, 2000ms...)
-                var delay = TimeSpan.FromMilliseconds(baseDelayMs * Math.Pow(2, attempt - 1));
-                await Task.Delay(delay, ct);
-            }
-        }
-
-        return false;
     }
 }

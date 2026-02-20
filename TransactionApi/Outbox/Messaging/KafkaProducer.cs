@@ -1,42 +1,62 @@
-﻿using Confluent.Kafka;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Confluent.Kafka;
 
-namespace TransactionApi.Messaging;
-
-public interface IKafkaProducer
+namespace TransactionApi.Messaging
 {
-    Task ProduceAsync(string topic, string key, string payload, IDictionary<string, string>? headers, CancellationToken ct);
-}
-
-public sealed class KafkaProducer : IKafkaProducer, IDisposable
-{
-    private readonly IProducer<string, string> _producer;
-
-    public KafkaProducer(ProducerConfig config)
+    public interface IKafkaProducer
     {
-        _producer = new ProducerBuilder<string, string>(config).Build();
+        Task ProduceAsync(
+            string topic,
+            string key,
+            string payload,
+            IDictionary<string, string>? headers,
+            CancellationToken ct = default);
     }
 
-    public async Task ProduceAsync(string topic, string key, string payload, IDictionary<string, string>? headers, CancellationToken ct)
+    public sealed class KafkaProducer : IKafkaProducer, IDisposable
     {
-        var message = new Message<string, string>
-        {
-            Key = key,
-            Value = payload,
-            Headers = new Headers()
-        };
+        private readonly IProducer<string, string> _producer;
 
-        if (headers is not null)
+        public KafkaProducer(ProducerConfig config)
         {
-            foreach (var (k, v) in headers)
-                message.Headers.Add(k, System.Text.Encoding.UTF8.GetBytes(v));
+            _producer = new ProducerBuilder<string, string>(config).Build();
         }
 
-        await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
-    }
+        public async Task ProduceAsync(
+            string topic,
+            string key,
+            string payload,
+            IDictionary<string, string>? headers,
+            CancellationToken ct = default)
+        {
+            ct.ThrowIfCancellationRequested();
 
-    public void Dispose()
-    {
-        _producer.Flush(TimeSpan.FromSeconds(5));
-        _producer.Dispose();
+            var message = new Message<string, string>
+            {
+                Key = key,
+                Value = payload,
+                Headers = new Headers()
+            };
+
+            if (headers is not null)
+            {
+                foreach (var (k, v) in headers)
+                {
+                    message.Headers.Add(k, System.Text.Encoding.UTF8.GetBytes(v));
+                }
+            }
+
+            // ProduceAsync não aceita CancellationToken, então só usamos ct antes
+            await _producer.ProduceAsync(topic, message).ConfigureAwait(false);
+        }
+
+        public void Dispose()
+        {
+            _producer.Flush(TimeSpan.FromSeconds(5));
+            _producer.Dispose();
+        }
     }
 }
