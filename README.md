@@ -44,7 +44,7 @@ A solução é composta por uma API REST para transações financeiras e dois Wo
    ```sh
    docker-compose up --build
    ```
-3. Acesse a API em `http://localhost:5000` (ajuste conforme configuração do compose).
+3. Acesse a API em `http://localhost:5150/swagger`.
 
 
 ## Tutorial Docker Compose
