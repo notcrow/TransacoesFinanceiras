@@ -6,7 +6,7 @@ using TransactionApi.Controllers.Responses;
 using TransactionApi.Domain.Entities;
 using TransactionApi.Domain.Enums;
 using TransactionApi.Infrastructure.Persistence;
-using TransactionApi.Outbox.Messaging.Events;
+using BuildingBlocks.Messaging.Events;
 using TransactionApi.Outbox;
 
 namespace TransactionApi.Controllers;

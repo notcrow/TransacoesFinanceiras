@@ -1,10 +1,11 @@
 ﻿using System.Text.Json;
+using BuildingBlocks.Messaging;
 using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ProjectionWorker.Messaging.Events;
+using BuildingBlocks.Messaging.Events;
 using ProjectionWorker.Projections;
 
 namespace ProjectionWorker;
@@ -39,7 +40,7 @@ public sealed class ProjectionConsumer : BackgroundService
         _consumer = new ConsumerBuilder<string, string>(cfg).Build();
 
         var topic =
-            _configuration["Kafka:Topics:TransactionSettled"] ?? "transaction-settled";
+            _configuration["Kafka:Topics:TransactionSettled"] ?? KafkaTopics.TransactionSettled;
 
         _consumer.Subscribe(topic);
 

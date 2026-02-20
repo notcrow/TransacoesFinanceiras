@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using ProjectionWorker.Projections;
 
 namespace ProjectionWorker.Infrastructure;

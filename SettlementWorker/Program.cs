@@ -1,10 +1,7 @@
+using BuildingBlocks.Messaging.Kafka;
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using SettlementWorker;
-using SettlementWorker.Messaging;
 using SettlementWorker.Persistence;
 using SettlementWorker.Services;
 

@@ -1,9 +1,9 @@
-﻿using System.Text.Json;
+﻿using BuildingBlocks.Messaging;
+using BuildingBlocks.Messaging.Events;
+using BuildingBlocks.Messaging.Kafka;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using SettlementWorker.Messaging;
-using SettlementWorker.Messaging.Events;
 using SettlementWorker.Persistence;
+using System.Text.Json;
 
 namespace SettlementWorker.Services
 {
@@ -91,8 +91,8 @@ namespace SettlementWorker.Services
                 payload,
                 new Dictionary<string, string>
                 {
-                    ["CorrelationId"] = evt.CorrelationId,
-                    ["EventType"] = "TransactionSettled"
+                    [KafkaHeaders.CorrelationId] = evt.CorrelationId,
+                    [KafkaHeaders.EventType] = "TransactionSettled"
                 },
                 ct);
 

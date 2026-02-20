@@ -1,11 +1,8 @@
-﻿using System.Text.Json;
-using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using SettlementWorker.Messaging.Events;
+﻿using Confluent.Kafka;
+using BuildingBlocks.Messaging.Events;
 using SettlementWorker.Services;
+using System.Text.Json;
+using BuildingBlocks.Messaging;
 
 namespace SettlementWorker;
 
@@ -40,10 +37,10 @@ public sealed class SettlementConsumer : BackgroundService
         _consumer = new ConsumerBuilder<string, string>(cfg).Build();
 
         var authorizedTopic =
-            _configuration["Kafka:Topics:TransactionAuthorized"] ?? "transaction-authorized";
+            _configuration["Kafka:Topics:TransactionAuthorized"] ?? KafkaTopics.TransactionAuthorized;
 
         _settledTopic =
-            _configuration["Kafka:Topics:TransactionSettled"] ?? "transaction-settled";
+            _configuration["Kafka:Topics:TransactionSettled"] ?? KafkaTopics.TransactionSettled;
 
         _consumer.Subscribe(authorizedTopic);
 

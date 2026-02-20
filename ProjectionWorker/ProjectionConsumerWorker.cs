@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using Confluent.Kafka;
 using MongoDB.Driver;
-using ProjectionWorker.Messaging.Events;
+using BuildingBlocks.Messaging.Events;
 using ProjectionWorker.ReadModel;
 
 namespace ProjectionWorker;

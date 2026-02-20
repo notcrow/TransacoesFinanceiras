@@ -1,10 +1,11 @@
 ﻿using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
-using SettlementWorker.Messaging;
-using SettlementWorker.Messaging.Events;
+using BuildingBlocks.Messaging.Events;
+using BuildingBlocks.Messaging.Kafka;
 using SettlementWorker.Persistence;
 using SettlementWorker.Services;
 using System.Text.Json;
+using BuildingBlocks.Messaging;
 
 namespace SettlementWorker;
 
@@ -33,9 +34,9 @@ public sealed class SettlementConsumerWorker : BackgroundService
             EnableAutoCommit = false
         };
 
-        var authorizedTopic = _config["Kafka:Topics:Authorized"] ?? "transaction-authorized";
-        var settledTopic = _config["Kafka:Topics:Settled"] ?? "transaction-settled";
-        var dltTopic = _config["Kafka:Topics:DeadLetter"] ?? "transaction-dead-letter";
+        var authorizedTopic = _config["Kafka:Topics:Authorized"] ?? KafkaTopics.TransactionAuthorized;
+        var settledTopic = _config["Kafka:Topics:Settled"] ?? KafkaTopics.TransactionSettled;
+        var dltTopic = _config["Kafka:Topics:DeadLetter"] ?? KafkaTopics.DeadLetter;
 
         using var consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
         consumer.Subscribe(authorizedTopic);
@@ -111,7 +112,7 @@ public sealed class SettlementConsumerWorker : BackgroundService
                 await _producer.ProduceAsync(dltTopic,
                                              evt.TransactionId.ToString("N"),
                                              dltPayload,
-                                             new Dictionary<string, string> { ["CorrelationId"] = evt.CorrelationId, ["EventType"] = "SettlementFailed" },
+                                             new Dictionary<string, string> { [KafkaHeaders.CorrelationId] = evt.CorrelationId, [KafkaHeaders.EventType] = KafkaHeaders.EventType },
                                              ct);
 
                 _logger.LogError("Sent to DLT TxId={TxId}", evt.TransactionId);

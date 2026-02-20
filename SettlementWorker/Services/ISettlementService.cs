@@ -1,6 +1,4 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-using SettlementWorker.Messaging.Events;
+﻿using BuildingBlocks.Messaging.Events;
 
 namespace SettlementWorker.Services
 {

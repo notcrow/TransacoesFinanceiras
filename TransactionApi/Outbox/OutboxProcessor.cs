@@ -1,17 +1,15 @@
-﻿using System.Text.Json;
+﻿using BuildingBlocks.Messaging;
+using BuildingBlocks.Messaging.Events;
+using BuildingBlocks.Messaging.Kafka;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 using TransactionApi.Infrastructure.Persistence;
-using TransactionApi.Outbox.Messaging;
-using TransactionApi.Outbox.Messaging.Events;
 
 namespace TransactionApi.Outbox
 {
     public sealed class OutboxProcessor : BackgroundService
     {
+        private const string TRANSACTION_OUTBOX = "TransactionApi.Outbox";
         private readonly IServiceProvider _serviceProvider;
         private readonly IKafkaProducer _producer;
         private readonly ILogger<OutboxProcessor> _logger;
@@ -32,9 +30,9 @@ namespace TransactionApi.Outbox
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var authorizedTopic =
-                _configuration["Kafka:Topics:TransactionAuthorized"] ?? "transaction-authorized";
+                _configuration["Kafka:Topics:TransactionAuthorized"] ?? KafkaTopics.TransactionAuthorized;
             var deadLetterTopic =
-                _configuration["Kafka:Topics:DeadLetter"] ?? "transaction-dead-letter";
+                _configuration["Kafka:Topics:DeadLetter"] ?? KafkaTopics.DeadLetter;
 
             _logger.LogInformation("OutboxProcessor iniciado. Topic={Topic}", authorizedTopic);
 
@@ -102,7 +100,7 @@ namespace TransactionApi.Outbox
                 {
                     var headers = new Dictionary<string, string>
                     {
-                        ["EventType"] = message.EventType
+                        [KafkaHeaders.EventType] = message.EventType
                     };
 
                     string key;
@@ -116,7 +114,7 @@ namespace TransactionApi.Outbox
                             key = evt.TransactionId.ToString("N");
 
                             if (!string.IsNullOrWhiteSpace(evt.CorrelationId))
-                                headers["CorrelationId"] = evt.CorrelationId;
+                                headers[KafkaHeaders.CorrelationId] = evt.CorrelationId;
                         }
                         else
                         {
@@ -180,8 +178,8 @@ namespace TransactionApi.Outbox
             {
                 var headers = new Dictionary<string, string>
                 {
-                    ["OriginalEventType"] = message.EventType,
-                    ["Source"] = "TransactionApi.Outbox"
+                    [KafkaHeaders.OriginalEventType] = message.EventType,
+                    [KafkaHeaders.Source] = TRANSACTION_OUTBOX
                 };
 
                 await _producer.ProduceAsync(

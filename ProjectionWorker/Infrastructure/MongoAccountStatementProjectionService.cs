@@ -1,5 +1,5 @@
 ﻿using MongoDB.Driver;
-using ProjectionWorker.Messaging.Events;
+using BuildingBlocks.Messaging.Events;
 using ProjectionWorker.Projections;
 
 namespace ProjectionWorker.Infrastructure;

@@ -6,7 +6,7 @@ using Microsoft.OpenApi;
 using TransactionApi.Domain.Entities;
 using TransactionApi.Infrastructure.Persistence;
 using TransactionApi.Outbox;
-using TransactionApi.Outbox.Messaging;
+using BuildingBlocks.Messaging.Kafka;
 
 var builder = WebApplication.CreateBuilder(args);
 

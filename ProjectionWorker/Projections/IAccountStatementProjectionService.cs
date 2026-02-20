@@ -1,4 +1,4 @@
-﻿using ProjectionWorker.Messaging.Events;
+﻿using BuildingBlocks.Messaging.Events;
 
 namespace ProjectionWorker.Projections;
 

@@ -1,9 +1,10 @@
-﻿using FluentAssertions;
+﻿using BuildingBlocks.Messaging;
+using BuildingBlocks.Messaging.Events;
+using BuildingBlocks.Messaging.Kafka;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using SettlementWorker.Messaging;
-using SettlementWorker.Messaging.Events;
 using SettlementWorker.Persistence.Entities;
 using SettlementWorker.Services;
 using Workers.Tests.Infrastructure;
@@ -12,7 +13,6 @@ namespace Workers.Tests;
 
 public class SettlementServiceTests
 {
-    private const string SettledTopic = "transaction-settled";
 
     [Fact]
     public async Task ProcessAsync_ShouldDebitAccountAndSetTransactionToSettled()
@@ -56,7 +56,7 @@ public class SettlementServiceTests
             OccurredAtUtc: DateTime.UtcNow
         );
 
-        await service.ProcessAsync(evt, SettledTopic, CancellationToken.None);
+        await service.ProcessAsync(evt, KafkaTopics.TransactionSettled, CancellationToken.None);
 
         var updatedAccount = await db.Accounts.FirstAsync(a => a.Id == account.Id);
         updatedAccount.Balance.Should().Be(19950);
@@ -66,7 +66,7 @@ public class SettlementServiceTests
 
         producerMock.Verify(p =>
             p.ProduceAsync(
-                SettledTopic,
+                KafkaTopics.TransactionSettled,
                 evt.TransactionId.ToString("N"),
                 It.IsAny<string>(),
                 It.IsAny<IDictionary<string, string>>(),

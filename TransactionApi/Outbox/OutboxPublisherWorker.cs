@@ -1,7 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using BuildingBlocks.Messaging;
+using BuildingBlocks.Messaging.Kafka;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using TransactionApi.Infrastructure.Persistence;
-using TransactionApi.Outbox.Messaging;
 
 namespace TransactionApi.Outbox
 {
@@ -72,8 +73,8 @@ namespace TransactionApi.Outbox
 
                 var headers = new Dictionary<string, string>
                 {
-                    ["CorrelationId"] = correlationId,
-                    ["EventType"] = msg.EventType
+                    [KafkaHeaders.CorrelationId] = correlationId,
+                    [KafkaHeaders.EventType] = msg.EventType
                 };
 
                 var published = await TryPublishWithRetryAsync(topic, msg, headers, ct);
@@ -132,7 +133,7 @@ namespace TransactionApi.Outbox
 
         private string ResolveDeadLetterTopic()
         {
-            return _config["Kafka:Topics:DeadLetter"] ?? "transaction-dead-letter";
+            return _config["Kafka:Topics:DeadLetter"] ?? KafkaTopics.DeadLetter;
         }
 
         private static string? TryExtractCorrelationId(string jsonPayload)
@@ -141,7 +142,7 @@ namespace TransactionApi.Outbox
             {
                 using var doc = JsonDocument.Parse(jsonPayload);
 
-                if (doc.RootElement.TryGetProperty("CorrelationId", out var p) &&
+                if (doc.RootElement.TryGetProperty(KafkaHeaders.CorrelationId, out var p) &&
                     p.ValueKind == JsonValueKind.String)
                 {
                     return p.GetString();
